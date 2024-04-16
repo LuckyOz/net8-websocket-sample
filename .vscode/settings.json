@@ -1,0 +1,20 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "Apps.Client/bin": true,
+        "Apps.Client/obj": true,
+        "Apps.Server/bin": true,
+        "Apps.Server/obj": true
+    },
+    "hide-files.files": [
+        "Apps.Client/bin",
+        "Apps.Client/obj",
+        "Apps.Server/bin",
+        "Apps.Server/obj"
+    ]
+}
