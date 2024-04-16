@@ -1,25 +1,68 @@
-var builder = WebApplication.CreateBuilder(args);
+﻿
+using System.Text;
+using System.Net.WebSockets;
 
-// Add services to the container.
+var ws = new ClientWebSocket();
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+string name;
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+while (true)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    Console.Write("Input name: ");
+    name = Console.ReadLine();
+    break;
 }
 
-app.UseHttpsRedirection();
+Console.WriteLine("Connecting to server");
+await ws.ConnectAsync(new Uri($"ws://localhost:6969/ws?name={name}"), CancellationToken.None);
+Console.WriteLine("Connected!");
 
-app.UseAuthorization();
+var receiveTask = Task.Run(async () =>
+{
+    var buffer = new byte[1024 * 4];
+    while (true)
+    {
+        var result = await ws.ReceiveAsync(
+            new ArraySegment<byte>(buffer),
+            CancellationToken.None);
 
-app.MapControllers();
+        if (result.MessageType ==
+        WebSocketMessageType.Close)
+        {
+            break;
+        }
 
-app.Run();
+        var message = Encoding.UTF8.GetString(
+            buffer, 0, result.Count);
+        Console.WriteLine(message);
+    }
+});
+
+
+var sendTask = Task.Run(async () =>
+{
+    while (true)
+    {
+        var message = Console.ReadLine();
+
+        if (message == "exit")
+        {
+            break;
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(message);
+        await ws.SendAsync(new ArraySegment<byte>(bytes),
+            WebSocketMessageType.Text, true,
+            CancellationToken.None);
+    }
+});
+
+await Task.WhenAny(sendTask, receiveTask);
+
+if (ws.State != WebSocketState.Closed)
+{
+    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure
+        , "Closing", CancellationToken.None);
+}
+
+await Task.WhenAll(sendTask, receiveTask);
